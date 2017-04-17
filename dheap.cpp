@@ -1,119 +1,156 @@
-#include<bits/stdc++.h>
+#include <iostream>
+#include <bits/stdc++.h>
+#include <vector>
+#include <cmath>
+
 using namespace std;
 
-void restoreDown( int arr[], int ver[], int len, int index, int k )
+void heapifyDown( int arr[], int len, int index, int k )
 {
-	int child[k+1];
+	int child[ k+1 ];
 
-	while (1)
+	for ( int i = 1; i <= k; i++ )
 	{
-		for ( int i = 1; i <= k; i++ )
-			child[i] = ( ( k * index + i ) < len ) ? ( k * index + i ) : 100000;
+		child[i] = ( ( k * index + i ) < len ) ? ( k * index + i ) : -1;
+	}
 
-		int max_child = 100000, max_child_index;
+	int min_child = -1, min_child_index;
 
-		for ( int i = 1; i <= k; i++ )
+	for ( int i = 1; i <= k; i++ )
+	{
+		if ( child[ i ] != -1 && ( arr[ child[ i ] ] < min_child || min_child == -1 ) )
 		{
-			if ( child[i] != 100000 && arr[child[i]] < max_child )
-			{
-				max_child_index = child[i];
-				max_child = arr[child[i]];
-			}
+			min_child_index = child[ i ];
+			min_child = arr[ child[ i ] ];
+		}
+	}
+
+	if ( min_child != -1 )
+	{
+		if ( arr[ index ] > arr[ min_child_index ] )
+		{
+			swap( arr[ index ], arr[ min_child_index ] );
 		}
 
-		if ( max_child == 100000 )
-			break;
-
-		if ( arr[index] > arr[max_child_index] )
-		{
-			swap( arr[index], arr[max_child_index] );
-			swap( ver[index], ver[max_child_index] );
-		}
-
-		index = max_child_index;
+		index = min_child_index;
+		heapifyDown( arr, len, index, k );
 	}
 }
 
-void restoreUp( int arr[], int ver[], int index, int k )
+void heapifyUp( int arr[], int index, int k )
 {
-	int parent = (index-1)/k;
-
-	while ( parent >= 0 )
+	if ( index > 0 )
 	{
-		if ( arr[index] < arr[parent] )
-		{
-			swap( arr[index], arr[parent] );
-			swap( ver[index], ver[parent] );
-			index = parent;
-			parent = ( index -1 )/k;
-		}
+		int parent = floor( ( index - 1 ) / k );
 
-		else
-			break;
+		if ( arr[ index ] < arr[ parent ] )
+		{
+			swap( arr[ index ], arr[ parent ] );
+			heapifyUp( arr, parent, k );
+		}
 	}
 }
 
-void buildHeap( int arr[], int ver[], int n, int k )
+void insert( int arr[], int* n, int k, int elem )
 {
-	for ( int i = (n-1)/k; i >= 0; i-- )
-		restoreDown( arr, ver, n, i, k );
-}
-
-void insert( int arr[], int ver[], int* n, int k, int elem, int weight )
-{
-	arr[*n] = weight;
-	ver[*n] = elem;
+	arr[*n] = elem;
 
 	*n = *n+1;
 
-	restoreUp( arr, ver, *n-1, k );
+	heapifyUp( arr, *n-1, k );
+
+	for ( int i = 0; i < *n; i++ )
+		printf( "%d ", arr[i] );
+
+	printf( "\n" );
 }
 
-int getMin( int arr[], int ver[], int* n, int k )
+int deleteMin( int arr[], int* n, int k )
 {
-	int min = arr[0];
+	int min = arr[ 0 ];
 
-	arr[0] = arr[*n-1];
-	ver[0] = ver[*n-1];
+	arr[ 0 ] = arr[ *n - 1 ];
 
-	*n = *n-1;
+	*n = *n - 1;
 
-	restoreDown( arr, ver, *n, 0, k );
+	if ( arr[ 0 ] > min )
+	{
+		heapifyDown( arr, *n, 0, k );
+	}
+	else
+	{
+		heapifyUp( arr, *n, k );
+	}
 
 	return min;
 }
 
 int main()
 {
-	const int capacity = 20;
-	int arr[ capacity ] = { 10, 18, 11, 15, 12, 14, 13, 99, 60, 1, 2, 70, 56, 33 };
-	int ver[ capacity ] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 };
-	int n = 14;
-	int k = 3;
+	const int capacity = 100;
+	int arr[ capacity ];
+	int n = 0;
+	int k = 4;
 
-	buildHeap( arr, ver, n, k );
+	insert( arr, &n, k, 10 );
+	insert( arr, &n, k, 18 );
+	insert( arr, &n, k, 11 );
+	insert( arr, &n, k, 15 );
+	insert( arr, &n, k, 12 );
+	insert( arr, &n, k, 14 );
+	insert( arr, &n, k, 13 );
+	insert( arr, &n, k, 99 );
+	insert( arr, &n, k, 60 );
+	insert( arr, &n, k, 1 );
+	insert( arr, &n, k, 2 );
+	insert( arr, &n, k, 70 );
+	insert( arr, &n, k, 56 );
+	insert( arr, &n, k, 33 );
+
+	//buildHeap( arr, n, k );
 
 	printf( "Built Heap : \n" );
 	for ( int i = 0; i < n; i++ )
 		printf( "%d ", arr[i] );
 
 	int element = 8;
-	insert( arr, ver, &n, k, 15, element );
+	insert( arr, &n, k, element );
 
 	printf( "\n\nHeap after insertion of %d: \n", element );
 	for ( int i = 0; i < n; i++ )
 		printf( "%d ", arr[i] );
 
-	printf( "\n\nExtracted min is %d", getMin( arr, ver, &n, k ) );
-	printf( "\n\nExtracted min is %d", getMin( arr, ver, &n, k ) );
-	printf( "\n\nExtracted min is %d", getMin( arr, ver, &n, k ) );
-	printf( "\n\nExtracted min is %d", getMin( arr, ver, &n, k ) );
-
-	printf( "\n\nHeap after extract min: \n" );
+	printf( "\n\nExtracted max is %d", deleteMin( arr, &n, k ) );
+	printf( "\n\nHeap after extract max: \n" );
 	for ( int i = 0; i < n; i++ )
-	{
-		printf( "(%d)%d ", ver[i], arr[i] );
-	}
+		printf( "%d ", arr[i] );
+	printf( "\n\nExtracted max is %d", deleteMin( arr, &n, k ) );
+	printf( "\n\nHeap after extract max: \n" );
+	for ( int i = 0; i < n; i++ )
+		printf( "%d ", arr[i] );
+	printf( "\n\nExtracted max is %d", deleteMin( arr, &n, k ) );
+	printf( "\n\nHeap after extract max: \n" );
+	for ( int i = 0; i < n; i++ )
+		printf( "%d ", arr[i] );
+	printf( "\n\nExtracted max is %d", deleteMin( arr, &n, k ) );
+	printf( "\n\nHeap after extract max: \n" );
+	for ( int i = 0; i < n; i++ )
+		printf( "%d ", arr[i] );
+
+	insert( arr, &n, k, 50 );	
+	printf( "\n\nExtracted max is %d", deleteMin( arr, &n, k ) );
+	printf( "\n\nHeap after extract max: \n" );
+	for ( int i = 0; i < n; i++ )
+		printf( "%d ", arr[i] );
+	printf( "\n\nExtracted max is %d", deleteMin( arr, &n, k ) );
+	printf( "\n\nHeap after extract max: \n" );
+	for ( int i = 0; i < n; i++ )
+		printf( "%d ", arr[i] );
+	printf( "\n\nExtracted max is %d", deleteMin( arr, &n, k ) );
+
+	printf( "\n\nHeap after extract max: \n" );
+	for ( int i = 0; i < n; i++ )
+		printf( "%d ", arr[i] );
 
 	return 0;
 }
