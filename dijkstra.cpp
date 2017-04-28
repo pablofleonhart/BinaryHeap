@@ -1,7 +1,9 @@
+#include <fstream>
 #include <iostream>
 #include <bits/stdc++.h>
 #include <vector>
 #include <cmath>
+#include <chrono>
 
 using namespace std;
 # define INF 0x3f3f3f3f
@@ -21,6 +23,8 @@ public:
     void printWeights();
 
     void insert( int weight, int vertex );
+
+    void update( unsigned index, unsigned weight );
 
     pair<int, int> deleteMin();
 
@@ -105,13 +109,33 @@ void Heap::insert( int weight, int vertex )
 
     n++;
 
-    heapifyUp( n - 1 ); 
+    heapifyUp( n - 1 );
+}
+
+void Heap::update( unsigned index, unsigned weight )
+{
+    if ( index > 0 && index < n )
+    {
+        unsigned curWeight = weights[ index ];
+        weights[ index ] = weight;
+
+        if ( curWeight < weight )
+        {
+            heapifyDown( index );
+        }
+        else
+        {
+            heapifyUp( index );
+        }
+    }
 }
 
 pair<int, int> Heap::deleteMin()
 {
     int minWeight = weights[ 0 ];
     int minVertex = vertexes[ 0 ];
+
+    //cout << minWeight << endl;
 
     weights[ 0 ] = weights[ n - 1 ];
     weights.pop_back();
@@ -132,127 +156,125 @@ pair<int, int> Heap::deleteMin()
 
     return make_pair( minWeight, minVertex );
 }
- 
-// iPair ==>  Integer Pair
+
 typedef pair<int, int> iPair;
  
-// This class represents a directed graph using
-// adjacency list representation
 class Graph
 {
-    int V;    // No. of vertices
+    int V;
  
-    // In a weighted graph, we need to store vertex
-    // and weight pair for every edge
     list< pair<int, int> > *adj;
  
 public:
-    Graph(int V);  // Constructor
+    Graph( int V );
  
-    // function to add an edge to graph
-    void addEdge(int u, int v, int w);
+    void addEdge( int u, int v, int w );
  
-    // prints shortest path from s
-    void shortestPath(int src, Heap heap );
+    void shortestPath( int from, int to, Heap heap );
 };
  
-// Allocates memory for adjacency list
-Graph::Graph(int V)
+Graph::Graph( int V )
 {
     this->V = V;
-    adj = new list<iPair> [V];
+    adj = new list<iPair> [ V ];
 }
  
-void Graph::addEdge(int u, int v, int w)
+void Graph::addEdge( int u, int v, int w )
 {
-    adj[u].push_back(make_pair(v, w));
-    adj[v].push_back(make_pair(u, w));
+    adj[ u ].push_back( make_pair( v, w ) );
+    //adj[ v ].push_back( make_pair( u, w ) );
 }
  
-// Prints shortest paths from src to all other vertices
-void Graph::shortestPath(int src, Heap heap )
+void Graph::shortestPath( int from, int to, Heap heap )
 {
-    // Create a priority queue to store vertices that
-    // are being preprocessed. This is weird syntax in C++.
-    // Refer below link for details of this syntax
-    // http://geeksquiz.com/implement-min-heap-using-stl/
-    //priority_queue< iPair, vector <iPair> , greater<iPair> > pq;
+    vector<int> dist( V, INF );
  
-    // Create a vector for distances and initialize all
-    // distances as infinite (INF)
-    vector<int> dist(V, INF);
+    heap.insert( 0, from );
+    dist[ from ] = 0;
+    int u, v = -1, weight = -1, stop = 0, get = 0;
  
-    // Insert source itself in priority queue and initialize
-    // its distance as 0.
-    //pq.push(make_pair(0, src));
-    heap.insert( 0, src );
-    dist[src] = 0;
- 
-    /* Looping till priority queue becomes empty (or all
-      distances are not finalized) */
-    while ( !heap.isEmpty() )
+    while ( !heap.isEmpty() && stop == 0 )
     {
-        // The first vertex in pair is the minimum distance
-        // vertex, extract it from priority queue.
-        // vertex label is stored in second of pair (it
-        // has to be done this way to keep the vertices
-        // sorted distance (distance must be first item
-        // in pair)
-        //int u = pq.top().second;
-        int u = heap.deleteMin().second;
-        //pq.pop();
- 
-        // 'i' is used to get all adjacent vertices of a vertex
+        //heap.printWeights();
+        u = heap.deleteMin().second;
+
         list< pair<int, int> >::iterator i;
-        for (i = adj[u].begin(); i != adj[u].end(); ++i)
+        for ( i = adj[ u ].begin(); i != adj[ u ].end(); ++i )
         {
-            // Get vertex label and weight of current adjacent
-            // of u.
-            int v = (*i).first;
-            int weight = (*i).second;
+            v = ( *i ).first;
+            weight = ( *i ).second;
  
-            //  If there is shorted path to v through u.
-            if (dist[v] > dist[u] + weight)
+            if ( u == to )
             {
-                // Updating distance of v
-                dist[v] = dist[u] + weight;
-                heap.insert( dist[ v ], v );
-                //pq.push(make_pair(dist[v], v));
+                get = 1;
             }
+
+            if ( dist[ v ] > dist[ u ] + weight )
+            {
+                dist[ v ] = dist[ u ] + weight;
+                heap.insert( dist[ v ], v );
+            }
+
+            //cout << "u " << u << " -> " << v << " v " << dist[ v ] << endl;
+        }
+
+        if ( to != 0 && get == 1 )
+        {
+            stop = 1;
+            break;
         }
     }
- 
-    // Print shortest distances stored in dist[]
-    printf("Vertex   Distance from Source\n");
-    for (int i = 0; i < V; ++i)
-        printf("%d \t\t %d\n", i, dist[i]);
+
+    if ( get == 0 )
+    {
+        cout << "inf" << endl;
+    }
+    else
+    {
+        cout << dist[u] << endl;
+    }
 }
- 
-// Driver program to test methods of graph class
-int main()
+
+int main( int argc, char *argv[] )
 {
-    // create the graph given in above fugure
-    int V = 9;
-    Graph g(V);
+    int from = atoi( argv[ 1 ] );
+    int to = atoi( argv[ 2 ] );
+
+    string line = "";
+
+    while ( line.substr( 0, 4 ) != "p sp" )
+    {
+        getline( cin, line );
+    }
+ 
+    stringstream pref( line );
+    unsigned n, m;
+    string ac;
+    pref >> ac >> ac >> n >> m;
+
+    Graph g( n + 1 );
+
+    unsigned i = 0;
+    while ( i < m )
+    {
+        getline( cin, line );
+
+        if ( line.substr( 0, 2 ) == "a " )
+        {
+            stringstream arc( line );
+            cout << line << endl;
+            unsigned u, v, w;
+            arc >> ac >> u >> v >> w;
+            g.addEdge( u, v, w );
+            i++;
+        }
+    }
+
+    cout << "Graph built" << endl;
+    
     Heap heap( 4 );
- 
-    //  making above shown graph
-    g.addEdge(0, 1, 4);
-    g.addEdge(0, 7, 8);
-    g.addEdge(1, 2, 8);
-    g.addEdge(1, 7, 11);
-    g.addEdge(2, 3, 7);
-    g.addEdge(2, 8, 20);
-    g.addEdge(2, 5, 4);
-    g.addEdge(3, 4, 9);
-    g.addEdge(3, 5, 14);
-    g.addEdge(4, 5, 10);
-    g.addEdge(5, 6, 2);
-    g.addEdge(6, 7, 5);
-    g.addEdge(6, 8, 6);
-    g.addEdge(7, 8, 7);
- 
-    g.shortestPath(0, heap);
+
+    g.shortestPath( from, to, heap );
  
     return 0;
 }
